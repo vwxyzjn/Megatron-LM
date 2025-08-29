@@ -14,9 +14,9 @@ WORLD_SIZE=$(($GPUS_PER_NODE*$NNODES))
 
 CHECKPOINT_PATH=${1:-"checkpoints/mixtral_8x7b"}
 TOKENIZER_MODEL=${3:-"MOCK"}
-DATA_ARG=${4:-"MOCK"}     # Data prefix, or "MOCK"
-# Data cache path (useful for both mock and real data)
+DATA_ARG=${4:-"MOCK"}
 DATA_CACHE_PATH="${PWD}/benchmark_cache_mixtral_8x7b"
+TRAIN_SAMPLES=${TRAIN_SAMPLES:-2048}
 mkdir -p "$DATA_CACHE_PATH"
 mkdir -p "$(dirname "$CHECKPOINT_PATH")"
 
@@ -67,6 +67,7 @@ DATA_ARGS_LIST=()
 if [[ "$TOKENIZER_ARG" == "MOCK" ]] || [[ "$DATA_ARG" == "MOCK" ]] || [[ -z "$TOKENIZER_ARG" ]]; then
     DATA_ARGS_LIST+=(
         "--mock-data"
+        "--train-samples $TRAIN_SAMPLES"
         "--tokenizer-type NullTokenizer"
         "--vocab-size 128256" 
         "--data-cache-path ${DATA_CACHE_PATH}"
