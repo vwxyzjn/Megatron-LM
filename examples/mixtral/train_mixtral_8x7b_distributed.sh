@@ -121,6 +121,7 @@ LOGGING_ARGS=(
     --save $CHECKPOINT_PATH \
     --load $CHECKPOINT_PATH \
     --tensorboard-dir "${CHECKPOINT_PATH}/tensorboard" \
+    --log-throughput \
     --no-load-optim \
     --no-load-rng
 )
