@@ -12,9 +12,10 @@ NNODES=${SLURM_NNODES:-"1"}
 NODE_RANK=${RANK:-"0"}
 WORLD_SIZE=$(($GPUS_PER_NODE*$NNODES))
 
-CHECKPOINT_PATH=$1
-TOKENIZER_MODEL=$2
-DATA_PATH=$3
+CHECKPOINT_PATH=${1:-"checkpoints/mixtral_8x7b"}
+TOKENIZER_MODEL=${3:-"MOCK"}
+DATA_ARG=${4:-"MOCK"}     # Data prefix, or "MOCK"
+mkdir -p "$(dirname "$CHECKPOINT_PATH")"
 
 DISTRIBUTED_ARGS=(
     --nproc_per_node $GPUS_PER_NODE
@@ -58,12 +59,35 @@ MOE_ARGS=(
     --overlap-grad-reduce
 )
 
-DATA_ARGS=(
-    --tokenizer-type Llama2Tokenizer
-    --tokenizer-model ${TOKENIZER_MODEL}
-    --data-path $DATA_PATH
-    --split 99990,8,2
-)
+# Data arguments (conditional for mock vs real data)
+DATA_ARGS_LIST=()
+if [[ "$TOKENIZER_ARG" == "MOCK" ]] || [[ "$DATA_ARG" == "MOCK" ]] || [[ -z "$TOKENIZER_ARG" ]]; then
+    DATA_ARGS_LIST+=(
+        "--mock-data"
+        "--tokenizer-type NullTokenizer"
+        "--vocab-size 128256" 
+        "--data-cache-path ${DATA_CACHE_PATH}"
+        "--tiktoken-pattern v2" 
+        "--split '99,1,0'"
+        "--no-create-attention-mask-in-dataloader"
+        "--no-mmap-bin-files"
+        "--num-workers 1"
+    )
+else
+    # Settings for real data
+    DATA_ARGS_LIST+=(
+        "--data-path $DATA_ARG"
+        "--tokenizer-type HuggingFaceTokenizer" 
+        "--tokenizer-model $TOKENIZER_ARG"
+        "--data-cache-path ${DATA_CACHE_PATH}"
+        "--split '99,1,0'"
+        "--no-create-attention-mask-in-dataloader"
+        "--no-mmap-bin-files"
+        "--num-workers 1"
+        # Note: --vocab-size might be inferred by HuggingFaceTokenizer or might need to be explicit.
+        "--vocab-size 128256"
+    )
+fi
 
 TRAINING_ARGS=(
     --micro-batch-size 1
@@ -110,7 +134,7 @@ fi
 torchrun ${DISTRIBUTED_ARGS[@]} pretrain_gpt.py \
     ${MODEL_ARGS[@]} \
     ${MOE_ARGS[@]} \
-    ${DATA_ARGS[@]} \
+    ${DATA_ARGS_LIST[@]} \
     ${TRAINING_ARGS[@]} \
     ${MODEL_PARALLEL_ARGS[@]} \
     ${LOGGING_ARGS[@]}

@@ -25,6 +25,7 @@ MASTER_ADDR=${MASTER_ADDR:-localhost}
 MASTER_PORT=${MASTER_PORT:-6000}
 NODE_RANK=${NODE_RANK:-0}
 WORLD_SIZE=$(($GPUS_PER_NODE*$NUM_NODES))
+TRAIN_SAMPLES=${TRAIN_SAMPLES:-2048}
 
 # Path to the pretrain_gpt.py script, assuming this script is run from the root of the Megatron-LM repository
 PRETRAIN_SCRIPT_PATH="pretrain_gpt.py"
@@ -79,7 +80,7 @@ MODEL_ARGS=(
 TRAINING_ARGS=(
     --micro-batch-size $MICRO_BATCH_SIZE
     --global-batch-size $GLOBAL_BATCH_SIZE
-    --train-samples 1953125000
+    --train-samples $TRAIN_SAMPLES
     --lr-decay-samples 1949218748
     --lr-warmup-samples 3906252
     --lr 0.00015
