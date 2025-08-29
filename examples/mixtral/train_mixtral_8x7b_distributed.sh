@@ -15,9 +15,7 @@ WORLD_SIZE=$(($GPUS_PER_NODE*$NNODES))
 CHECKPOINT_PATH=${1:-"checkpoints/mixtral_8x7b"}
 TOKENIZER_MODEL=${3:-"MOCK"}
 DATA_ARG=${4:-"MOCK"}
-DATA_CACHE_PATH="${PWD}/benchmark_cache_mixtral_8x7b"
 TRAIN_SAMPLES=${TRAIN_SAMPLES:-2048}
-mkdir -p "$DATA_CACHE_PATH"
 mkdir -p "$(dirname "$CHECKPOINT_PATH")"
 
 DISTRIBUTED_ARGS=(
@@ -72,7 +70,6 @@ if [[ "$TOKENIZER_ARG" == "MOCK" ]] || [[ "$DATA_ARG" == "MOCK" ]] || [[ -z "$TO
         "--lr-warmup-samples 3906252"
         "--tokenizer-type NullTokenizer"
         "--vocab-size 128256" 
-        "--data-cache-path ${DATA_CACHE_PATH}"
         "--tiktoken-pattern v2" 
         "--split '99,1,0'"
         "--no-create-attention-mask-in-dataloader"
@@ -85,7 +82,6 @@ else
         "--data-path $DATA_ARG"
         "--tokenizer-type HuggingFaceTokenizer" 
         "--tokenizer-model $TOKENIZER_ARG"
-        "--data-cache-path ${DATA_CACHE_PATH}"
         "--split '99,1,0'"
         "--no-create-attention-mask-in-dataloader"
         "--no-mmap-bin-files"
