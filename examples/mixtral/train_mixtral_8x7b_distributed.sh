@@ -68,6 +68,8 @@ if [[ "$TOKENIZER_ARG" == "MOCK" ]] || [[ "$DATA_ARG" == "MOCK" ]] || [[ -z "$TO
     DATA_ARGS_LIST+=(
         "--mock-data"
         "--train-samples $TRAIN_SAMPLES"
+        "--lr-decay-samples 1949218748"
+        "--lr-warmup-samples 3906252"
         "--tokenizer-type NullTokenizer"
         "--vocab-size 128256" 
         "--data-cache-path ${DATA_CACHE_PATH}"
@@ -97,8 +99,6 @@ TRAINING_ARGS=(
     --micro-batch-size 1
     --global-batch-size 256
     --lr 1e-4
-    --train-iters 500000
-    --lr-decay-iters 320000
     --lr-decay-style cosine
     --min-lr 1.0e-5
     --weight-decay 0.1
