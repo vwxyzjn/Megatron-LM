@@ -15,6 +15,9 @@ WORLD_SIZE=$(($GPUS_PER_NODE*$NNODES))
 CHECKPOINT_PATH=${1:-"checkpoints/mixtral_8x7b"}
 TOKENIZER_MODEL=${3:-"MOCK"}
 DATA_ARG=${4:-"MOCK"}     # Data prefix, or "MOCK"
+# Data cache path (useful for both mock and real data)
+DATA_CACHE_PATH="${PWD}/benchmark_cache_mixtral_8x7b"
+mkdir -p "$DATA_CACHE_PATH"
 mkdir -p "$(dirname "$CHECKPOINT_PATH")"
 
 DISTRIBUTED_ARGS=(
