@@ -176,24 +176,18 @@ MODEL_PARALLEL_ARGS=(
 )
 
 LOGGING_ARGS=(
-    --log-interval 1
-    --save-interval 500
-    --eval-interval 200
-    --eval-iters 32
-    --save $CHECKPOINT_PATH
-    --load $CHECKPOINT_PATH
-    --tensorboard-dir "${CHECKPOINT_PATH}/tensorboard"
-    --log-throughput
-    --log-timers-to-tensorboard false
-    --log-memory-to-tensorboard true
-    --log-num-zeros-in-grad false
-    --log-params-norm false
-    --log-validation-ppl-to-tensorboard true
-    --logging-level 40
-    --no-load-optim
-    --no-load-rng
-    --finetune false
-    --auto-detect-ckpt-format
+    --log-interval 1 \
+    --save-interval 500 \
+    --eval-interval 200 \
+    --eval-iters 32 \
+    --save $CHECKPOINT_PATH \
+    --load $CHECKPOINT_PATH \
+    --tensorboard-dir "${CHECKPOINT_PATH}/tensorboard" \
+    --log-throughput \
+    --no-load-optim \
+    --logging-level 40 \
+    --no-load-rng \
+    --auto-detect-ckpt-format \
     --dist-ckpt-strictness log_all
 )
 
