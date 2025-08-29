@@ -95,6 +95,9 @@ else
     )
 fi
 
+# --train-iters 500000
+# --lr-decay-iters 320000
+# --lr-warmup-iters 500
 TRAINING_ARGS=(
     --micro-batch-size 1
     --global-batch-size 256
@@ -102,7 +105,6 @@ TRAINING_ARGS=(
     --lr-decay-style cosine
     --min-lr 1.0e-5
     --weight-decay 0.1
-    --lr-warmup-iters 500
     --clip-grad 1.0
     --bf16
 )
