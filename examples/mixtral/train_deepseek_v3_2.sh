@@ -14,6 +14,25 @@ export PYTHONWARNINGS=ignore
 export NCCL_DEBUG=VERSION
 export CUDA_DEVICE_MAX_CONNECTIONS=1
 
+# Parallelism and training hyperparameters from env (with sensible defaults)
+TP=${TP:-2}
+PP=${PP:-8}
+EP=${EP:-64}
+CP=${CP:-1}
+VPP=${VPP:-1}
+PP_FIRST=${PP_FIRST:-}
+PP_LAST=${PP_LAST:-}
+MBS=${MBS:-1}
+GBS=${GBS:-2048}
+SEQ_LEN=${SEQ_LEN:-4096}
+COMMENT=${COMMENT:-""}
+
+# IO paths
+OUTPUT_PATH=${OUTPUT_PATH:-"checkpoints/deepseek_v3"}
+LOAD_PATH=${LOAD_PATH:-"${OUTPUT_PATH}"}
+DATA_PATH=${DATA_PATH:-"/path/to/your/data"}
+WANDB_PROJECT=${WANDB_PROJECT:-"DeepSeek-V3"}
+
 GPUS_PER_NODE=8
 # Change for multinode config
 MASTER_ADDR=${MASTER_ADDR:-"localhost"}
@@ -21,12 +40,8 @@ MASTER_PORT=${MASTER_PORT:-"6000"}
 NNODES=${SLURM_NNODES:-"1"}
 NODE_RANK=${RANK:-"0"}
 WORLD_SIZE=$(($GPUS_PER_NODE*$NNODES))
-
-CHECKPOINT_PATH=${1:-"checkpoints/deepseek_v3"}
-TOKENIZER_MODEL=${3:-"MOCK"}
-DATA_ARG=${4:-"MOCK"}
-TRAIN_SAMPLES=${TRAIN_SAMPLES:-2048}
-mkdir -p "$(dirname "$CHECKPOINT_PATH")"
+TRAIN_SAMPLES=${TRAIN_SAMPLES:-16384}
+mkdir -p "$(dirname "$OUTPUT_PATH")"
 
 DISTRIBUTED_ARGS=(
     --nproc_per_node $GPUS_PER_NODE
@@ -41,8 +56,8 @@ MODEL_ARGS=(
     --sequence-parallel
     --use-flash-attn
     --disable-bias-linear
-    --seq-length 4096
-    --max-position-embeddings 4096
+    --seq-length ${SEQ_LEN}
+    --max-position-embeddings ${SEQ_LEN}
     --num-layers 61
     --hidden-size 7168
     --ffn-hidden-size 18432
@@ -64,8 +79,6 @@ MODEL_ARGS=(
     --swiglu
     --untie-embeddings-and-output-weights
     --multi-latent-attention
-    --no-masked-softmax-fusion
-    --no-position-embedding
     --make-vocab-size-divisible-by 3232
     --transformer-impl transformer_engine
     --cross-entropy-loss-fusion
@@ -108,21 +121,22 @@ MOE_ARGS=(
     --moe-permute-fusion
 )
 
-# Settings for real data with DeepSeek V3 tokenizer
 DATA_ARGS_LIST=(
     "--mock-data"
     "--train-samples $TRAIN_SAMPLES"
-    "--tokenizer-type HuggingFaceTokenizer" 
+    "--tokenizer-type HuggingFaceTokenizer"
     "--tokenizer-model deepseek-ai/DeepSeek-V3"
-    "--split '99,1,0'"
+    "--split 99,1,0"
     "--no-create-attention-mask-in-dataloader"
     "--no-mmap-bin-files"
     "--num-workers 6"
     "--make-vocab-size-divisible-by 3232"
 )
 TRAINING_ARGS=(
-    --micro-batch-size 1
-    --global-batch-size 8192
+    --micro-batch-size ${MBS}
+    --global-batch-size ${GBS}
+    --lr-decay-samples ${TRAIN_SAMPLES}
+    --lr-warmup-samples 128
     --lr-warmup-init 3.9e-7
     --lr 3.9e-6
     --min-lr 3.9e-7
@@ -136,23 +150,38 @@ TRAINING_ARGS=(
 )
 
 MODEL_PARALLEL_ARGS=(
-    --tensor-model-parallel-size 2
-    --pipeline-model-parallel-size 8
-    --expert-model-parallel-size 64
-    --context-parallel-size 1
+    --tensor-model-parallel-size ${TP}
+    --pipeline-model-parallel-size ${PP}
+    --expert-model-parallel-size ${EP}
+    --context-parallel-size ${CP}
     --expert-tensor-parallel-size 1
     --use-distributed-optimizer
     --enable-experimental
 )
+
+# Virtual pipeline parallelism
+if [[ ${VPP} -gt 1 ]]; then
+    MODEL_PARALLEL_ARGS+=(
+        --num-virtual-stages-per-pipeline-rank ${VPP}
+    )
+fi
+
+# Uneven pipeline parallelism layout if provided
+if [[ -n "${PP_FIRST}" && -n "${PP_LAST}" ]]; then
+    MODEL_PARALLEL_ARGS+=(
+        --decoder-first-pipeline-num-layers ${PP_FIRST}
+        --decoder-last-pipeline-num-layers ${PP_LAST}
+    )
+fi
 
 LOGGING_ARGS=(
     --log-interval 1 \
     --save-interval 500 \
     --eval-interval 200 \
     --eval-iters 32 \
-    --save $CHECKPOINT_PATH \
-    --load $CHECKPOINT_PATH \
-    --tensorboard-dir "${CHECKPOINT_PATH}/tensorboard" \
+    --save ${OUTPUT_PATH} \
+    --load ${LOAD_PATH} \
+    --tensorboard-dir "${OUTPUT_PATH}/tensorboard" \
     --log-throughput \
     --no-load-optim \
     --logging-level 40 \
@@ -162,9 +191,10 @@ LOGGING_ARGS=(
 )
 
 if [ -n "${WANDB_API_KEY}" ]; then
+    EXP_NAME=${WANDB_NAME:-"DeepSeek-V3-TP${TP}PP${PP}EP${EP}CP${CP}VPP${VPP}-MBS${MBS}GBS${GBS}-${COMMENT}"}
     LOGGING_ARGS+=(
-        --wandb-project ${WANDB_PROJECT:-"DeepSeek-V3"}
-        --wandb-exp-name ${WANDB_NAME:-"DeepSeek-V3"}
+        --wandb-project ${WANDB_PROJECT}
+        --wandb-exp-name ${EXP_NAME}
     )
 fi
 
@@ -176,4 +206,5 @@ torchrun ${DISTRIBUTED_ARGS[@]} pretrain_gpt.py \
     ${DATA_ARGS_LIST[@]} \
     ${TRAINING_ARGS[@]} \
     ${MODEL_PARALLEL_ARGS[@]} \
-    ${LOGGING_ARGS[@]}
+    ${LOGGING_ARGS[@]} \
+    "$@"
