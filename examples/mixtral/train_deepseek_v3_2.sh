@@ -99,6 +99,7 @@ MLA_ARGS=(
     --mtp-loss-scaling-factor 0.1
 )
 
+# --moe-enable-deepep is not compatible with our EFA setup
 MOE_ARGS=(
     --num-experts 256
     --moe-layer-freq "([0]*3+[1]*58)"
@@ -107,7 +108,6 @@ MOE_ARGS=(
     --moe-router-load-balancing-type seq_aux_loss
     --moe-router-topk 8
     --moe-token-dispatcher-type flex
-    --moe-enable-deepep
     --moe-router-pre-softmax
     --moe-grouped-gemm
     --moe-aux-loss-coeff 1e-4
