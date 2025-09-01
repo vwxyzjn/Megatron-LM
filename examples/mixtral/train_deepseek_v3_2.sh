@@ -121,6 +121,7 @@ MOE_ARGS=(
     --moe-router-bias-update-rate 1e-3
     --moe-router-dtype fp32
     --moe-permute-fusion
+    --moe-router-force-load-balancing
 )
 
 DATA_ARGS_LIST=(
