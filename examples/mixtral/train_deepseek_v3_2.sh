@@ -102,6 +102,7 @@ MLA_ARGS=(
 # The following are not compatible with our EFA setup
 # --moe-enable-deepep 
 # --moe-token-dispatcher-type flex
+# --moe-router-force-load-balancing
 MOE_ARGS=(
     --num-experts 256
     --moe-layer-freq "([0]*3+[1]*58)"
@@ -121,7 +122,6 @@ MOE_ARGS=(
     --moe-router-bias-update-rate 1e-3
     --moe-router-dtype fp32
     --moe-permute-fusion
-    --moe-router-force-load-balancing
 )
 
 DATA_ARGS_LIST=(
