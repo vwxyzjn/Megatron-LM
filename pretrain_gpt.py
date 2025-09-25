@@ -1,6 +1,12 @@
 # Copyright (c) 2023, NVIDIA CORPORATION.  All rights reserved.
 
 """Pretrain and SFT GPT."""
+import os
+print("LOCAL_RANK: ", os.environ["LOCAL_RANK"])
+local_rank=os.environ['LOCAL_RANK']
+os.environ['NVSHMEM_ENABLE_NIC_PE_MAPPING'] = '1'
+os.environ['NVSHMEM_HCA_LIST'] = f'mlx5_{local_rank}:1'
+
 
 import torch
 
